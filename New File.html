@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .calculator {
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .display-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            text-align: right;
+            padding: 30px 20px;
+            cursor: pointer;
+        }
+
+        #history { color: #999; font-size: 1.2rem; min-height: 1.5rem; margin-bottom: 10px; word-wrap: break-word; }
+        #result { color: #000; font-size: 4rem; font-weight: 300; word-break: break-all; transition: all 0.2s; }
+        hr { border: 0; border-top: 1px solid #f2f2f2; margin: 0 20px 10px 20px; }
+
+        .buttons-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px 20px 30px 20px; }
+        button { height: 75px; border: none; background: transparent; font-size: 1.8rem; color: #333; border-radius: 50%; display: flex; justify-content: center; align-items: center; transition: background 0.2s; cursor: pointer; }
+        button:active { background-color: #f0f0f0; }
+        .orange { color: #ff7043; }
+        .equal-btn { background-color: #ff7043; color: #fff; font-size: 2.2rem; }
+        .equal-btn:active { background-color: #e64a19; }
+
+        .sci-panel { display: none; grid-template-columns: repeat(5, 1fr); background: #f9f9f9; padding: 10px; border-radius: 20px 20px 0 0; position: absolute; bottom: 0; width: 100%; z-index: 10; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); }
+        .sci-panel button { font-size: 1rem; height: 60px; color: #777; }
+        .show-sci { display: grid !important; }
+
+        /* --- ভল্ট পেজ --- */
+        #vaultPage, .sub-page { display: none; width: 100%; max-width: 450px; height: 100vh; background: #ffffff; padding: 20px; overflow-y: auto; position: absolute; z-index: 20; }
+        .vault-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 2px solid #ff7043; }
+
+        .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 20px; }
+        .category-box { background: #fff3f0; border: 2px solid #ff7043; border-radius: 15px; height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s; }
+        .category-box:active { transform: scale(0.95); background: #ffe5de; }
+        .category-icon { font-size: 2.5rem; margin-bottom: 8px; }
+        .category-title { font-size: 1.1rem; font-weight: bold; color: #333; }
+
+        /* --- সাব-পেজ --- */
+        .add-box-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 25px; }
+        .add-box-btn { width: 80px; height: 80px; border: 2px dashed #ff7043; border-radius: 12px; background: #f9f9f9; display: flex; justify-content: center; align-items: center; font-size: 2.5rem; color: #ff7043; cursor: pointer; }
+        .add-box-btn:active { background: #eee; }
+        .add-box-text { font-size: 0.9rem; color: #666; margin-top: 5px; font-weight: bold; }
+
+        .items-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .item-card { background: #f9f9f9; border: 1px solid #eee; border-radius: 10px; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; height: 180px; overflow: hidden; cursor: pointer; }
+        .item-card img, .item-card video { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; background: #000; }
+
+        .note-content { font-size: 0.9rem; color: #333; height: 120px; overflow: hidden; padding: 5px; background: #fffde7; border-radius: 6px; border: 1px solid #fff59d; word-break: break-all; }
+        .file-info { font-size: 0.8rem; color: #555; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .delete-btn { background: #ff5252; color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; border: none; cursor: pointer; }
+
+        /* --- ফুল স্ক্রিন ও এডিট পপআপ (Modal) --- */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 30; flex-direction: column; justify-content: center; align-items: center; }
+        .modal-top-bar { width: 100%; max-width: 500px; display: flex; justify-content: space-between; padding: 20px; position: absolute; top: 0; }
+        .modal-btn { background: #ff7043; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+        .modal-close { background: #555; }
+        .preview-content { max-width: 95%; max-height: 75vh; object-fit: contain; }
+
+        /* নোট এডিট মোডাল স্পেশাল ব্যাকগ্রাউন্ড */
+        .edit-modal { background: rgba(0, 0, 0, 0.5) !important; }
+        .edit-box { background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .edit-box textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; resize: none; font-size: 1rem; margin-bottom: 15px; user-select: text; }
+        .btn-group { display: flex; justify-content: flex-end; gap: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="calculator" id="calcContainer">
+    <div class="display-area" onclick="editPrevious()"> <div id="history"></div> <div id="result">0</div></div>
+    <hr>
+    <div id="sciPanel" class="sci-panel">
+        <button onclick="mathFunc('sin')">sin</button><button onclick="mathFunc('cos')">cos</button><button onclick="mathFunc('tan')">tan</button><button onclick="append('(')">(</button><button onclick="append(')')">)</button>
+        <button onclick="mathFunc('log')">lg</button><button onclick="mathFunc('ln')">ln</button><button onclick="append('**')">xʸ</button><button onclick="mathFunc('sqrt')">√</button><button class="orange" onclick="toggleSci()">❌</button>
+    </div>
+    <div class="buttons-grid">
+        <button class="orange" onclick="clearAll()">AC</button><button class="orange" onclick="backspace()">⌫</button><button class="orange" onclick="append('%')">%</button><button class="orange" onclick="append('÷')">÷</button>
+        <button onclick="append('7')">7</button><button onclick="append('8')">8</button><button onclick="append('9')">9</button><button class="orange" onclick="append('×')">×</button>
+        <button onclick="append('4')">4</button><button onclick="append('5')">5</button><button onclick="append('6')">6</button><button class="orange" onclick="append('-')">−</button>
+        <button onclick="append('1')">1</button><button onclick="append('2')">2</button><button onclick="append('3')">3</button><button class="orange" onclick="append('+')">+</button>
+        <button class="orange" onclick="toggleSci()">🔄</button><button onclick="append('0')">0</button><button onclick="append('.')">.</button><button class="equal-btn" onclick="calculate()">=</button>
+    </div>
+</div>
+
+<div id="vaultPage">
+    <div class="vault-header"><h2>🔒 Secret Vault</h2><button class="orange" style="font-size: 1rem; padding: 5px 10px; border-radius: 5px; background: #f0f0f0;" onclick="closeVault()">Lock</button></div>
+    <div class="category-grid">
+        <div class="category-box" onclick="openSubPage('photo')"><span class="category-icon">🖼️</span><span class="category-title">ফটো (Photos)</span></div>
+        <div class="category-box" onclick="openSubPage('video')"><span class="category-icon">🎬</span><span class="category-title">ভিডিও (Videos)</span></div>
+        <div class="category-box" onclick="openSubPage('file')"><span class="category-icon">📁</span><span class="category-title">ফাইল (Files)</span></div>
+        <div class="category-box" onclick="openSubPage('text')"><span class="category-icon">📝</span><span class="category-title">টেক্সট (Text)</span></div>
+    </div>
+</div>
+
+<div id="subPage" class="sub-page">
+    <div class="vault-header"><h2 id="subPageTitle">Category</h2><button style="font-size:1rem; padding:5px 10px; border-radius:5px; background:#f0f0f0; border:none; cursor:pointer;" onclick="backToVault()">◀ Back</button></div>
+    <div class="add-box-container"><div class="add-box-btn" onclick="triggerAdd()">+</div><div class="add-box-text">Add New</div></div>
+    <input type="file" id="universalFileInput" style="display: none;" onchange="handleSubPageUpload(this)" multiple />
+    <div class="items-grid" id="subPageItemsGrid"></div>
+</div>
+
+<div id="previewModal" class="modal">
+    <div class="modal-top-bar">
+        <button class="modal-btn modal-close" onclick="closePreview()">Close</button>
+        <button class="modal-btn" id="downloadBtn">📥 Download</button>
+    </div>
+    <div id="previewContainer" style="width:100%; display:flex; justify-content:center; align-items:center;"></div>
+</div>
+
+<div id="textEditModal" class="modal edit-modal">
+    <div class="edit-box">
+        <h3 style="margin-bottom: 10px;">📝 নোট দেখুন / এডিট করুন</h3>
+        <textarea id="editTextContainer"></textarea>
+        <div class="btn-group">
+            <button class="modal-btn" style="background:#4caf50;" onclick="copyText()">📋 Copy Text</button>
+            <button class="modal-btn modal-close" onclick="closeEditModal()">Cancel</button>
+            <button class="modal-btn" onclick="updateTextNote()">Save Update</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentInput = "0", historyText = "", savedPIN = localStorage.getItem('calc_vault_pin') || null;
+    let currentCategory = "", activeItemId = null;
+    const resDiv = document.getElementById('result'), histDiv = document.getElementById('history');
+    if (!savedPIN) { historyText = "Set 4+ Digit PIN"; }
+
+    function render() {
+        resDiv.innerText = currentInput; histDiv.innerText = historyText;
+        if (currentInput.length > 10) resDiv.style.fontSize = "2rem";
+        else if (currentInput.length > 6) resDiv.style.fontSize = "3rem";
+        else resDiv.style.fontSize = "4rem";
+    }
+    render();
+
+    function append(val) { if (currentInput === "0" && !isNaN(val)) currentInput = val; else currentInput += val; render(); }
+    function clearAll() { currentInput = "0"; historyText = savedPIN ? "" : "Set 4+ Digit PIN"; render(); }
+    function backspace() { if (currentInput.length > 1) currentInput = currentInput.slice(0, -1); else currentInput = "0"; render(); }
+    function editPrevious() { if (historyText !== "" && savedPIN) { currentInput = historyText.replace(" =", ""); historyText = ""; render(); } }
+
+    function calculate() {
+        if (!savedPIN) {
+            if (currentInput.length >= 4 && !isNaN(currentInput)) {
+                localStorage.setItem('calc_vault_pin', currentInput); savedPIN = currentInput;
+                alert("পিন সেট হয়েছে! পিন: " + savedPIN); historyText = ""; currentInput = "0"; render();
+            } else { alert("কমপক্ষে ৪টি সংখ্যার পিন দিন।"); }
+            return;
+        }
+        if (currentInput === savedPIN) { openVault(); clearAll(); return; }
+        try {
+            historyText = currentInput + " =";
+            let code = currentInput.replace(/×/g, '*').replace(/÷/g, '/');
+            currentInput = String(eval(code)); render();
+        } catch (e) { currentInput = "Error"; render(); }
+    }
+
+    function toggleSci() { document.getElementById('sciPanel').classList.toggle('show-sci'); }
+    function mathFunc(type) {
+        let val = parseFloat(currentInput);
+        try {
+            if(type === 'sin') currentInput = Math.sin(val * Math.PI / 180).toFixed(4);
+            if(type === 'cos') currentInput = Math.cos(val * Math.PI / 180).toFixed(4);
+            if(type === 'tan') currentInput = Math.tan(val * Math.PI / 180).toFixed(4);
+            if(type === 'log') currentInput = Math.log10(val).toFixed(4);
+            if(type === 'ln') currentInput = Math.log(val).toFixed(4);
+            if(type === 'sqrt') currentInput = Math.sqrt(val).toString();
+            render();
+        } catch(e) { currentInput = "Error"; render(); }
+    }
+
+    // --- INDEXEDDB আনলিমিটেড ডাটাবেজ ---
+    let db;
+    const dbRequest = indexedDB.open("SuperVaultDB", 1);
+    dbRequest.onupgradeneeded = function(e) {
+        db = e.target.result;
+        if (!db.objectStoreNames.contains("items")) db.createObjectStore("items", { keyPath: "id", autoIncrement: true });
+    };
+    dbRequest.onsuccess = function(e) { db = e.target.result; };
+
+    function openVault() { document.getElementById('calcContainer').style.display = 'none'; document.getElementById('vaultPage').style.display = 'block'; }
+    function closeVault() { document.getElementById('vaultPage').style.display = 'none'; document.getElementById('calcContainer').style.display = 'flex'; }
+    function openSubPage(category) { currentCategory = category; document.getElementById('vaultPage').style.display = 'none'; document.getElementById('subPage').style.display = 'block'; const titles = { 'photo': '🖼️ Photos', 'video': '🎬 Videos', 'file': '📁 Files', 'text': '📝 Text Notes' }; document.getElementById('subPageTitle').innerText = titles[category]; loadCategoryItems(); }
+    function backToVault() { document.getElementById('subPage').style.display = 'none'; document.getElementById('vaultPage').style.display = 'block'; }
+
+    function triggerAdd() {
+        if (currentCategory === 'text') {
+            openEditModal(null, "");
+        } else {
+            const fIn = document.getElementById('universalFileInput');
+            if (currentCategory === 'photo') fIn.accept = "image/*";
+            else if (currentCategory === 'video') fIn.accept = "video/*";
+            else fIn.accept = "*/*";
+            fIn.click();
+        }
+    }
+
+    function handleSubPageUpload(input) {
+        const files = input.files; if (files.length === 0) return;
+        let loaded = 0;
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const itemData = { category: currentCategory, name: file.name, fileType: file.type, blob: file };
+            const transaction = db.transaction(["items"], "readwrite");
+            transaction.objectStore("items").add(itemData).onsuccess = function() {
+                loaded++; if (loaded === files.length) loadCategoryItems();
+            };
+        }
+    }
+
+    function loadCategoryItems() {
+        const grid = document.getElementById('subPageItemsGrid'); grid.innerHTML = "";
+        const transaction = db.transaction(["items"], "readonly");
+        transaction.objectStore("items").openCursor().onsuccess = function(e) {
+            const cursor = e.target.result;
+            if (cursor) {
+                const item = cursor.value;
+                if (item.category === currentCategory) {
+                    const card = document.createElement('div'); card.className = 'item-card';
+                    
+                    if (item.category === 'text') {
+                        const noteDiv = document.createElement('div'); noteDiv.className = 'note-content'; noteDiv.innerText = item.content;
+                        card.appendChild(noteDiv);
+                        card.onclick = function() { openEditModal(item.id, item.content); };
+                    } else {
+                        const fileURL = URL.createObjectURL(item.blob);
+                        if (item.category === 'photo') {
+                            const img = document.createElement('img'); img.src = fileURL; card.appendChild(img);
+                            card.onclick = function(ev) { if(ev.target.className !== 'delete-btn') openPreview(fileURL, 'img', item.name); };
+                        } else if (item.category === 'video') {
+                            const video = document.createElement('video'); video.src = fileURL; card.appendChild(video);
+                            card.onclick = function(ev) { if(ev.target.className !== 'delete-btn') openPreview(fileURL, 'video', item.name); };
+                        } else {
+                            const doc = document.createElement('div'); doc.innerText = `📄 ${item.name.substring(0,12)}...`; doc.style.cssText = "padding:30px 5px; text-align:center; font-weight:bold; color:#ff7043;"; card.appendChild(doc);
+                            card.onclick = function(ev) { if(ev.target.className !== 'delete-btn') triggerDownload(fileURL, item.name); };
+                        }
+                    }
+
+                    const info = document.createElement('div'); info.className = 'file-info';
+                    info.innerHTML = `<span>${item.name ? item.name.substring(0,8)+'...' : '📝 নোট'}</span>`;
+                    const del = document.createElement('button'); del.className = 'delete-btn'; del.innerText = 'Delete';
+                    del.onclick = function(ev) { ev.stopPropagation(); deleteItem(item.id); };
+                    
+                    info.appendChild(del); card.appendChild(info); grid.appendChild(card);
+                }
+                cursor.continue();
+            }
+        };
+    }
+
+    function deleteItem(id) { if(confirm("এটি ডিলিট করতে চান?")) { db.transaction(["items"], "readwrite").objectStore("items").delete(id).onsuccess = loadCategoryItems; } }
+
+    // --- ৪. ফুল স্ক্রিন প্রিভিউ সিস্টেম (ফটো/ভিডিও) ---
+    function openPreview(url, type, filename) {
+        const container = document.getElementById('previewContainer'); container.innerHTML = "";
+        if (type === 'img') {
+            const img = document.createElement('img'); img.src = url; img.className = 'preview-content'; container.appendChild(img);
+        } else {
+            const vid = document.createElement('video'); vid.src = url; vid.controls = true; vid.autoplay = true; vid.className = 'preview-content'; container.appendChild(vid);
+        }
+        document.getElementById('downloadBtn').onclick = function() { triggerDownload(url, filename); };
+        document.getElementById('previewModal').style.display = 'flex';
+    }
+    function closePreview() { document.getElementById('previewModal').style.display = 'none'; }
+    function triggerDownload(url, filename) { const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+
+    // --- ৫. টেক্সট এডিট এবং কপি সিস্টেম ---
+    function openEditModal(id, content) {
+        activeItemId = id;
+        document.getElementById('editTextContainer').value = content;
+        document.getElementById('textEditModal').style.display = 'flex';
+    }
+    function closeEditModal() { document.getElementById('textEditModal').style.display = 'none'; activeItemId = null; }
+
+    function updateTextNote() {
+        const txt = document.getElementById('editTextContainer').value.trim();
+        if (!txt) return;
+        const transaction = db.transaction(["items"], "readwrite");
+        const store = transaction.objectStore("items");
+        
+        if (activeItemId === null) {
+            // নতুন টেক্সট
+            store.add({ category: 'text', content: txt });
+        } else {
+            // আগের টেক্সট এডিট
+            store.get(activeItemId).onsuccess = function(e) {
+                const data = e.target.result; data.content = txt;
+                store.put(data);
+            }
+        }
+        transaction.oncomplete = function() { closeEditModal(); loadCategoryItems(); };
+    }
+
+    function copyText() {
+        const copyTxt = document.getElementById('editTextContainer');
+        copyTxt.select(); copyTxt.setSelectionRange(0, 99999); // মোবাইল ডিভাইসের জন্য
+        navigator.clipboard.writeText(copyTxt.value);
+        alert("টেক্সট সফলভাবে কপি হয়েছে! ✅");
+    }
+</script>
+
+</body>
+</html>
